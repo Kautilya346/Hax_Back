@@ -3,6 +3,7 @@ import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { AptosAccount } from "aptos"
 import { encrypt, decrypt } from "../Utils/Encryption.js";
 import {User} from "../Models/user.model.js"
+import jwt from "jsonwebtoken"
 
 const router = express.Router();
 
@@ -51,13 +52,13 @@ router.post("/signup", async (req, res) => {
       accountAddress: account.address(),
       resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
     });
-
-    console.log("money",resource.data.coin.value);
+    
     return res.status(201).json({
         message: "Signup successful",
         username,
         publicKey: account.pubKey().hex(),
         address: account.address().hex(),
+        privateKey: account.toPrivateKeyObject().privateKeyHex,
     });
   } catch (err) {
     console.log(err);
@@ -74,22 +75,62 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    // Decrypt stored private key
-    const storedPrivateKey = decrypt(user.privateKey);
+    
+    const user=await User.findOne({username});
 
+    const storedPrivateKey = decrypt(user.privateKey);
     if (storedPrivateKey !== privateKeyHex) {
       return res.status(401).json({ error: "Invalid private key" });
     }
 
-    return res.status(200).json({
-      message: "Login successful",
-      username: user.username,
-      address: user.address,
-      publicKey: user.publicKey,
-    });
+    const accessToken=createAccessToken(user)
+    const refreshToken=createRefreshToken(user)
+
+    user.refreshToken = refreshToken
+    await user.save({ validateBeforeSave: false })
+
+
+    const cookieOptions = {
+        httpOnly: true,
+        secure: true,
+        sameSite:"None",
+        path:"/"
+    }
+
+
+    return res.status(200)
+    .cookie("accessToken",accessToken,cookieOptions)
+    .cookie("refreshToken",refreshToken,cookieOptions)
+    .json({
+        msg:"Login Successful",
+        AT:accessToken,
+        RT:refreshToken
+    })
   } catch (err) {
     return res.status(500).json({ error: "Login failed", details: err.message });
   }
 });
+
+
+function createAccessToken(user){
+  return jwt.sign({
+      _id:user._id,
+      email:user.email,
+      username:user.username,
+      fullName:user.fullName
+  },process.env.A_SECRET_TOKEN,
+  {
+      expiresIn:"5h"
+  })
+}
+
+function createRefreshToken(user){
+  return jwt.sign({
+      _id:user._id,
+  },process.env.R_SECRET_TOKEN,
+  {
+      expiresIn:"2d"
+  })
+}
 
 export default router;
