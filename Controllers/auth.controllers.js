@@ -2,14 +2,15 @@ import express from "express";
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
 import { AptosAccount } from "aptos";
 import { encrypt, decrypt } from "../Utils/Encryption.js";
-import {User} from "../Models/user.model.js"
-import jwt from "jsonwebtoken"
+import { User } from "../Models/user.model.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
 // Signup Route
 router.post("/signup", async (req, res) => {
-  const { username, email } = req.body;
+  const { username, email, fullname } = req.body;
+  console.log(req.body);
 
   if (!username) {
     return res.status(400).json({ error: "Username is required" });
@@ -57,13 +58,13 @@ router.post("/signup", async (req, res) => {
       accountAddress: account.address(),
       resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
     });
-    
+
     return res.status(201).json({
-        message: "Signup successful",
-        username,
-        publicKey: account.pubKey().hex(),
-        address: account.address().hex(),
-        privateKey: account.toPrivateKeyObject().privateKeyHex,
+      message: "Signup successful",
+      username,
+      publicKey: account.pubKey().hex(),
+      address: account.address().hex(),
+      privateKey: account.toPrivateKeyObject().privateKeyHex,
     });
   } catch (err) {
     console.log(err);
@@ -82,37 +83,35 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    
-    const user=await User.findOne({username});
+    const user = await User.findOne({ username });
 
     const storedPrivateKey = decrypt(user.privateKey);
     if (storedPrivateKey !== privateKeyHex) {
       return res.status(401).json({ error: "Invalid private key" });
     }
 
-    const accessToken=createAccessToken(user)
-    const refreshToken=createRefreshToken(user)
+    const accessToken = createAccessToken(user);
+    const refreshToken = createRefreshToken(user);
 
-    user.refreshToken = refreshToken
-    await user.save({ validateBeforeSave: false })
-
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
 
     const cookieOptions = {
-        httpOnly: true,
-        secure: true,
-        sameSite:"None",
-        path:"/"
-    }
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      path: "/",
+    };
 
-
-    return res.status(200)
-    .cookie("accessToken",accessToken,cookieOptions)
-    .cookie("refreshToken",refreshToken,cookieOptions)
-    .json({
-        msg:"Login Successful",
-        AT:accessToken,
-        RT:refreshToken
-    })
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions)
+      .json({
+        msg: "Login Successful",
+        AT: accessToken,
+        RT: refreshToken,
+      });
   } catch (err) {
     return res
       .status(500)
@@ -120,26 +119,31 @@ router.post("/login", async (req, res) => {
   }
 });
 
-
-function createAccessToken(user){
-  return jwt.sign({
-      _id:user._id,
-      email:user.email,
-      username:user.username,
-      fullName:user.fullName
-  },process.env.A_SECRET_TOKEN,
-  {
-      expiresIn:"5h"
-  })
+function createAccessToken(user) {
+  return jwt.sign(
+    {
+      _id: user._id,
+      email: user.email,
+      username: user.username,
+      fullName: user.fullName,
+    },
+    process.env.A_SECRET_TOKEN,
+    {
+      expiresIn: "5h",
+    }
+  );
 }
 
-function createRefreshToken(user){
-  return jwt.sign({
-      _id:user._id,
-  },process.env.R_SECRET_TOKEN,
-  {
-      expiresIn:"2d"
-  })
+function createRefreshToken(user) {
+  return jwt.sign(
+    {
+      _id: user._id,
+    },
+    process.env.R_SECRET_TOKEN,
+    {
+      expiresIn: "2d",
+    }
+  );
 }
 
 export default router;

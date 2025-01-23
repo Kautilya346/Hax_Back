@@ -6,7 +6,7 @@ import { Service } from "../Models/service.model.js";
 const router = express.Router();
 
 // POST route to create a new service
-router.post("/detail", uploadOnMulter.single("image"), async (req, res) => {
+router.post("/user", uploadOnMulter.single("image"), async (req, res) => {
   try {
     const { title, user, price, description } = req.body;
 
