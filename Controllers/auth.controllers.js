@@ -34,9 +34,7 @@ router.post("/signup", async (req, res) => {
     }
 
     // Encrypt the private key for storage
-    const encryptedPrivateKey = encrypt(
-      account.toPrivateKeyObject().privateKeyHex
-    );
+    const encryptedPrivateKey = account.toPrivateKeyObject().privateKeyHex;
 
     const user = await User.create({
       email,
@@ -85,7 +83,7 @@ router.post("/login", async (req, res) => {
   try {
     const user = await User.findOne({ username });
 
-    const storedPrivateKey = decrypt(user.privateKey);
+    const storedPrivateKey = user.privateKey;
     if (storedPrivateKey !== privateKeyHex) {
       return res.status(401).json({ error: "Invalid private key" });
     }
@@ -113,9 +111,8 @@ router.post("/login", async (req, res) => {
         RT: refreshToken,
       });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ error: "Login failed", details: err.message });
+    console.log(err);
+    return res.status(500).json({ error: "Login failed", details: err });
   }
 });
 
