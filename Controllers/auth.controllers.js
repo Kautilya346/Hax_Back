@@ -1,11 +1,10 @@
 import express from "express";
 import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
-import { AptosAccount } from "aptos"
+import { AptosAccount } from "aptos";
 import { encrypt, decrypt } from "../Utils/Encryption.js";
-import {User} from "../Models/user.model.js"
+import { User } from "../Models/user.model.js";
 
 const router = express.Router();
-
 
 // Signup Route
 router.post("/signup", async (req, res) => {
@@ -18,33 +17,39 @@ router.post("/signup", async (req, res) => {
   try {
     // Create a new Aptos account
     const account = new AptosAccount();
-    const aptos = new Aptos(new AptosConfig({network: Network.Devnet}));
+    const aptos = new Aptos(new AptosConfig({ network: Network.Devnet }));
 
-    try{
-    const balance=await aptos.fundAccount({accountAddress: account.address(), amount: 100000000});
-    
-    }catch (error) {
+    try {
+      const balance = await aptos.fundAccount({
+        accountAddress: account.address(),
+        amount: 100000000,
+      });
+    } catch (error) {
       //console.log(error);
-      return res.status(500).json({ error: "Failed to fund account", details: error });
+      return res
+        .status(500)
+        .json({ error: "Failed to fund account", details: error });
     }
 
     // Encrypt the private key for storage
-    const encryptedPrivateKey = encrypt(account.toPrivateKeyObject().privateKeyHex);
+    const encryptedPrivateKey = encrypt(
+      account.toPrivateKeyObject().privateKeyHex
+    );
 
     const user = await User.create({
-        email,
-        username,
-        publicKey: account.pubKey().hex(),
-        address: account.address().hex(),
-        privateKey: encryptedPrivateKey,
+      email,
+      username,
+      publicKey: account.pubKey().hex(),
+      address: account.address().hex(),
+      privateKey: encryptedPrivateKey,
     });
 
     const createdUser = await User.findById(user._id);
 
     if (!createdUser) {
-        return res.status(400).json({
-            message: "Signup failed, User not saved in database",
-        });
+      return res.status(400).json({
+        message: "Signup failed, User not saved in database",
+      });
     }
 
     const resource = await aptos.getAccountResource({
@@ -52,12 +57,12 @@ router.post("/signup", async (req, res) => {
       resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
     });
 
-    console.log("money",resource.data.coin.value);
+    console.log("money", resource.data.coin.value);
     return res.status(201).json({
-        message: "Signup successful",
-        username,
-        publicKey: account.pubKey().hex(),
-        address: account.address().hex(),
+      message: "Signup successful",
+      username,
+      publicKey: account.pubKey().hex(),
+      address: account.address().hex(),
     });
   } catch (err) {
     console.log(err);
@@ -70,7 +75,9 @@ router.post("/login", async (req, res) => {
   const { username, privateKeyHex } = req.body;
 
   if (!username || !privateKeyHex) {
-    return res.status(400).json({ error: "Username and private key are required" });
+    return res
+      .status(400)
+      .json({ error: "Username and private key are required" });
   }
 
   try {
@@ -88,7 +95,9 @@ router.post("/login", async (req, res) => {
       publicKey: user.publicKey,
     });
   } catch (err) {
-    return res.status(500).json({ error: "Login failed", details: err.message });
+    return res
+      .status(500)
+      .json({ error: "Login failed", details: err.message });
   }
 });
 
