@@ -4,11 +4,21 @@ import authRoutes from "./Controllers/auth.controllers.js";
 import serviceRoutes from "./Controllers/service.controller.js";
 import connectDB from "./Utils/db.js";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import cors from "cors";
 
 const app = express();
 dotenv.config();
 connectDB();
 const PORT = 3000;
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"))
+app.use(cookieParser())
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true 
+}));
 
 // Middleware
 app.use(bodyParser.json());
