@@ -1,17 +1,11 @@
 import express from "express";
-import { AptosAccount, FaucetClient } from "aptos";
+import { Aptos, AptosConfig, Network } from "@aptos-labs/ts-sdk";
+import { AptosAccount } from "aptos"
 import { encrypt, decrypt } from "../Utils/Encryption.js";
 import {User} from "../Models/user.model.js"
 
 const router = express.Router();
 
-// In-memory storage for demo (replace with a database)
-const users = {};
-
-// Configure Aptos testnet
-const NODE_URL = "https://fullnode.testnet.aptoslabs.com/v1";
-const FAUCET_URL = "https://faucet.testnet.aptoslabs.com";
-const faucetClient = new FaucetClient(NODE_URL, FAUCET_URL);
 
 // Signup Route
 router.post("/signup", async (req, res) => {
@@ -21,16 +15,18 @@ router.post("/signup", async (req, res) => {
     return res.status(400).json({ error: "Username is required" });
   }
 
-  if (users[username]) {
-    return res.status(400).json({ error: "Username already exists" });
-  }
-
   try {
     // Create a new Aptos account
     const account = new AptosAccount();
+    const aptos = new Aptos(new AptosConfig({network: Network.Devnet}));
 
-    // Fund the account on the testnet
-    //await faucetClient.fundAccount(account.address(), 1000000);
+    try{
+    const balance=await aptos.fundAccount({accountAddress: account.address(), amount: 100000000});
+    
+    }catch (error) {
+      //console.log(error);
+      return res.status(500).json({ error: "Failed to fund account", details: error });
+    }
 
     // Encrypt the private key for storage
     const encryptedPrivateKey = encrypt(account.toPrivateKeyObject().privateKeyHex);
@@ -51,6 +47,12 @@ router.post("/signup", async (req, res) => {
         });
     }
 
+    const resource = await aptos.getAccountResource({
+      accountAddress: account.address(),
+      resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
+    });
+
+    console.log("money",resource.data.coin.value);
     return res.status(201).json({
         message: "Signup successful",
         username,
@@ -58,6 +60,7 @@ router.post("/signup", async (req, res) => {
         address: account.address().hex(),
     });
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ error: "Signup failed", details: err });
   }
 });
@@ -68,11 +71,6 @@ router.post("/login", async (req, res) => {
 
   if (!username || !privateKeyHex) {
     return res.status(400).json({ error: "Username and private key are required" });
-  }
-
-  const user = users[username];
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
   }
 
   try {
