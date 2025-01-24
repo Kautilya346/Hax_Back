@@ -102,6 +102,8 @@ router.post("/login", async (req, res) => {
       sameSite: "none", // Required for cross-origin cookies
     };
 
+    console.log(req.cookies, "hii");
+
     return res
       .status(200)
       .cookie("accessToken", accessToken, cookieOptions)
