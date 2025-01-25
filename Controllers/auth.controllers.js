@@ -4,7 +4,6 @@ import { AptosAccount } from "aptos";
 import { encrypt, decrypt } from "../Utils/Encryption.js";
 import { User } from "../Models/user.model.js";
 import jwt from "jsonwebtoken";
-import e from "express";
 
 const router = express.Router();
 
@@ -96,10 +95,11 @@ router.post("/login", async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     const cookieOptions = {
-      expires: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days
+      maxAge: 2 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       secure: true, // HTTPS required in production
-      sameSite: "none", // Required for cross-origin cookies
+      sameSite: "none",
+      path:"/" // Required for cross-origin cookies
     };
 
     console.log(req.cookies, "hii");

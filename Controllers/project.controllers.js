@@ -5,7 +5,18 @@ import { User } from "../Models/user.model.js";
 
 const router = express.Router();
 
-// Get projects by employer and freelancer
+router.get("/getprojectdetail/:projectId",async (req,res)=>{
+
+  try {
+    const {projectId}=req.params;
+  
+    const project=await Project.findById(projectId).populate("user2").populate("Employer");
+  
+    return res.status(200).json(project);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+})
 
 router.get("/", async (req, res) => {
   try {

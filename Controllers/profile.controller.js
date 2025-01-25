@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { verifyToken } from "../Middleware/Token.middleware.js";
 import { Project } from "../Models/project.model.js";
+
 const router = Router();
+
 
 const getCurrentUser = (req) => {
   return req.user || null;
