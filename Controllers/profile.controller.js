@@ -22,7 +22,7 @@ router.get("/profile", verifyToken, async (req, res) => {
       .populate("Employer")
       .populate("user2");
 
-    console.log(user, "Authenticated user.");
+    //console.log(user, "Authenticated user.");
     console.log(userProjects, "Projects where user is involved.");
 
     res.json({ user, projects: userProjects });

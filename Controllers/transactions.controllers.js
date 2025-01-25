@@ -11,7 +11,8 @@ router.post("/sendmoney", verifyToken,async (req, res) => {
     
     //const currUser=req.user
     const receiverAddress=req.body.receiverAddress
-    const privateKeyHex=req.user.privateKey
+    //console.log(req.user)
+    //const privateKeyHex=req.user.privateKey
     const amount = req.body.amount
 
     const receiverFromDb=await User.findOne({address:receiverAddress})  
@@ -19,13 +20,16 @@ router.post("/sendmoney", verifyToken,async (req, res) => {
     const config = new AptosConfig({ network: Network.DEVNET });
     const aptos = new Aptos(config);
    try {
-    //const privateKeyHex = "0x9250a9bc32bc15937abf8916ee74e299853e5bfdd1bb08b9804523196d653451";
+    const privateKeyHex = "0x7e019fe27fe4c6f1d5c5cbc06ad567ca961365924d3cf28e712ee549ec80d38d";
     // Remove '0x' prefix if present
     const cleanPrivateKeyHex = privateKeyHex.startsWith('0x') ? privateKeyHex.slice(2) : privateKeyHex;
     const privateKeyBytes = Uint8Array.from(Buffer.from(cleanPrivateKeyHex, 'hex'));
     const privateKey = new Ed25519PrivateKey(privateKeyBytes);
     let sender = Account.fromPrivateKey({ privateKey });
 
+    console.log(receiverFromDb)
+
+    
     //let receiver = Account.generate();
 
     const cleanReceuverKey=receiverFromDb.privateKey.startsWith('0x') ? receiverFromDb.privateKey.slice(2) : receiverFromDb.privateKey;
