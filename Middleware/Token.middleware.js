@@ -2,11 +2,8 @@ import { User } from "../Models/user.model.js";
 import jwt from "jsonwebtoken";
 
 export async function verifyToken(req, res, next) {
-  console.log("hi");
   try {
-    // console.log(req.cookies, "hello");
     const currAccessToken = await req.cookies?.accessToken;
-    // console.log(currAccessToken, "currr access  sdsds");
     if (!currAccessToken) {
       return res.status(406).json({
         errCode: 406,

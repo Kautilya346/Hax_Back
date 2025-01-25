@@ -1,5 +1,5 @@
 import express from "express";
-import { Aptos, AptosConfig, Network,Account} from "@aptos-labs/ts-sdk";
+import { Aptos, AptosConfig, Network,Account, Ed25519PrivateKey, PrivateKey} from "@aptos-labs/ts-sdk";
 import { AptosAccount } from "aptos";
 import { encrypt, decrypt } from "../Utils/Encryption.js";
 import {User} from "../Models/user.model.js"
@@ -9,60 +9,70 @@ const router = express.Router();
 
 router.post("/sendmoney", verifyToken,async (req, res) => {
     
-    const currUser=req.user
+    //const currUser=req.user
+    const receiverAddress=req.body.receiverAddress
+    const privateKeyHex=req.user.privateKey
+    const amount = req.body.amount
+
+    const receiverFromDb=await User.findOne({address:receiverAddress})  
+
     const config = new AptosConfig({ network: Network.DEVNET });
     const aptos = new Aptos(config);
    try {
-    const privateKeyHex = "18be24659b2f20632f7b37ac8ae086d7c5f3d5d752337b29d6a4202aac157e93";
-    const privateKeyBuffer = Uint8Array.from(Buffer.from(privateKeyHex, "hex"));
-    let sender = new AptosAccount(privateKeyBuffer);
-    let receiver = Account.generate();
- 
-    // 0. Setup the client and test accounts
+    //const privateKeyHex = "0x9250a9bc32bc15937abf8916ee74e299853e5bfdd1bb08b9804523196d653451";
+    // Remove '0x' prefix if present
+    const cleanPrivateKeyHex = privateKeyHex.startsWith('0x') ? privateKeyHex.slice(2) : privateKeyHex;
+    const privateKeyBytes = Uint8Array.from(Buffer.from(cleanPrivateKeyHex, 'hex'));
+    const privateKey = new Ed25519PrivateKey(privateKeyBytes);
+    let sender = Account.fromPrivateKey({ privateKey });
+
+    //let receiver = Account.generate();
+
+    const cleanReceuverKey=receiverFromDb.privateKey.startsWith('0x') ? receiverFromDb.privateKey.slice(2) : receiverFromDb.privateKey;
+    const receiverPrivateKeyBytes = Uint8Array.from(Buffer.from(cleanReceuverKey, 'hex'));
+    const receiverPrivateKey = new Ed25519PrivateKey(receiverPrivateKeyBytes);
+    let receiver = Account.fromPrivateKey({ privateKey: receiverPrivateKey });
+
     
- 
-    await aptos.fundAccount({
-        accountAddress: sender.accountAddress,
-        amount: 100_000_000,
-    });
+  
+    // await aptos.fundAccount({
+    //     accountAddress: receiver.accountAddress,
+    //     amount: 10,
+    // });
 
-    await aptos.fundAccount({
-        accountAddress: receiver.accountAddress,
-        amount: 10,
-    });
-
-    const resource1 = await aptos.getAccountResource({
-        accountAddress: sender.accountAddress,
-        resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
-      });
+    // const resource1 = await aptos.getAccountResource({
+    //     accountAddress: sender.accountAddress,
+    //     resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
+    // });
       
 
-        console.log("resource1 is",resource1)
+    // console.log("resource1 is",resource1)
 
-        const resource2 = await aptos.getAccountResource({
-            accountAddress: receiver.accountAddress,
-            resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
-          });
+    // const resource2 = await aptos.getAccountResource({
+    //     accountAddress: receiver.accountAddress,
+    //     resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
+    // });
           
     
-            console.log("resource2 is",resource2)
+    // console.log("resource2 is",resource2)
 
  
     // 1. Build the transaction to preview the impact of it
 
 
     const transaction = await aptos.transaction.build.simple({
-        sender: sender.address().toString(),
-        data: {
+      sender: sender.accountAddress,  // Remove toString "0x1::aptos_account::transfer",
+      data: {
         // All transactions on Aptos are implemented via smart contracts.
         function: "0x1::aptos_account::transfer",
-        functionArguments: [receiver.accountAddress, 100],
-        },
+        functionArguments: [receiver.accountAddress, amount],
+        }    
     });
+    console.log("done thill here")
  
     // 2. Simulate to see what would happen if we execute this transaction
     const [userTransactionResponse] = await aptos.transaction.simulate.simple({
-        signerPublicKey: sender.pubKey().toString(),
+        signerPublicKey: sender.publicKey,
         transaction,
     });
 
@@ -94,28 +104,50 @@ router.post("/sendmoney", verifyToken,async (req, res) => {
       });
       
 
-        console.log("resource is",resource)
+    console.log("resource is",resource)
 
-        const resource3 = await aptos.getAccountResource({
-            accountAddress: receiver.accountAddress,
-            resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
-          });
+    const resource3 = await aptos.getAccountResource({
+      accountAddress: receiver.accountAddress,
+      resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
+    });
           
     
-            console.log("resource3 is",resource3)
+    console.log("resource3 is",resource3)
 
         //console.log(userTransactionResponse)
 
-        res.json({
-            message: "Transaction successful",
-            sender: sender.accountAddress,
-            receiver: receiver.accountAddress,
-            resource: resource,
-            userTransactionResponse: userTransactionResponse,
-        });
+      res.json({
+          message: "Transaction successful",
+          sender: sender.accountAddress,
+          receiver: receiver.accountAddress,
+          resource: resource,
+          userTransactionResponse: userTransactionResponse,
+      });
       } catch (error) {
         console.error("Error fetching balances:", error);
       }
-    });
+});
+
+router.get("/getbalance",verifyToken,async (req,res)=>{
+    const privateKeyHex=req.user.privateKey
+    const config = new AptosConfig({ network: Network.DEVNET });
+    const aptos = new Aptos(config);
+    try {
+        const cleanPrivateKeyHex = privateKeyHex.startsWith('0x') ? privateKeyHex.slice(2) : privateKeyHex;
+        const privateKeyBytes = Uint8Array.from(Buffer.from(cleanPrivateKeyHex, 'hex'));
+        const privateKey = new Ed25519PrivateKey(privateKeyBytes);
+        let sender = Account.fromPrivateKey({ privateKey });
+        const resource = await aptos.getAccountResource({
+            accountAddress: sender.accountAddress,
+            resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>",
+          });
+        res.json({
+            message: "Balance fetched",
+            resource: resource,
+        });
+    } catch (error) {
+        console.error("Error fetching balances:", error);
+    }
+});
 
 export default router;
