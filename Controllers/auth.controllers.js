@@ -80,7 +80,7 @@ router.post("/login", async (req, res) => {
       .status(400)
       .json({ error: "Username and private key are required" });
   }
-
+  console.log("ohhhh");
   try {
     const user = await User.findOne({ username });
 

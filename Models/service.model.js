@@ -26,6 +26,16 @@ const serviceSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  domain: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  contact: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
