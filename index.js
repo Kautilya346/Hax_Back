@@ -4,10 +4,12 @@ import authRoutes from "./Controllers/auth.controllers.js";
 import serviceRoutes from "./Controllers/service.controller.js";
 import projectRoutes from "./Controllers/project.controllers.js";
 import transactionRoutes from "./Controllers/transactions.controllers.js";
+import profileRoutes from "./Controllers/profile.controller.js";
 import connectDB from "./Utils/db.js";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+
 import { verifyToken } from "./Middleware/Token.middleware.js";
 
 const app = express();
@@ -33,6 +35,8 @@ app.use("/auth", authRoutes);
 app.use("/service", serviceRoutes);
 
 app.use("/project", projectRoutes);
+
+app.use("/api", profileRoutes);
 
 app.use("/transaction", transactionRoutes);
 app.get("/check", verifyToken, (req, res) => {
