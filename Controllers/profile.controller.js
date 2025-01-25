@@ -4,7 +4,6 @@ import { Project } from "../Models/project.model.js";
 
 const router = Router();
 
-
 const getCurrentUser = (req) => {
   return req.user || null;
 };
@@ -19,7 +18,9 @@ router.get("/profile", verifyToken, async (req, res) => {
   try {
     const userProjects = await Project.find({
       $or: [{ Employer: user._id }, { user2: user._id }],
-    });
+    })
+      .populate("Employer")
+      .populate("user2");
 
     console.log(user, "Authenticated user.");
     console.log(userProjects, "Projects where user is involved.");

@@ -5,18 +5,19 @@ import { User } from "../Models/user.model.js";
 
 const router = express.Router();
 
-router.get("/getprojectdetail/:projectId",async (req,res)=>{
-
+router.get("/getprojectdetail/:projectId", async (req, res) => {
   try {
-    const {projectId}=req.params;
-  
-    const project=await Project.findById(projectId).populate("user2").populate("Employer");
-  
+    const { projectId } = req.params;
+
+    const project = await Project.findById(projectId)
+      .populate("user2")
+      .populate("Employer");
+
     return res.status(200).json(project);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-})
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -71,6 +72,45 @@ router.post("/", verifyToken, async (req, res) => {
     res.status(201).json(project);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+router.post("/updatebool", async (req, res) => {
+  try {
+    console.log("ohhohhbhaii");
+    const { projectId, isProjectDoneByEmployer, isProjectDoneByFreelancer } =
+      req.body;
+
+    // Validate request data
+    if (!projectId) {
+      return res.status(400).json({ message: "Project ID is required" });
+    }
+
+    // Find the project by ID
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Update fields with new values if provided
+    if (isProjectDoneByEmployer !== undefined) {
+      project.isProjectDoneByEmployer = isProjectDoneByEmployer;
+    }
+    if (isProjectDoneByFreelancer !== undefined) {
+      project.isProjectDoneByFreelancer = isProjectDoneByFreelancer;
+    }
+
+    // Save the updated project back to the database
+    await project.save();
+    console.log(project, "save ogaya");
+    res.status(200).json({
+      message: "Project updated successfully",
+      project: project,
+    });
+  } catch (error) {
+    console.error("Error updating project:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
