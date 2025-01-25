@@ -21,7 +21,7 @@ router.get("/profile", verifyToken, async (req, res) => {
       $or: [{ Employer: user._id }, { user2: user._id }],
     });
 
-    console.log(user, "Authenticated user.");
+    //console.log(user, "Authenticated user.");
     console.log(userProjects, "Projects where user is involved.");
 
     res.json({ user, projects: userProjects });
